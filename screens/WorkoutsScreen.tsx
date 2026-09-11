@@ -1,28 +1,42 @@
-import React, {useEffect, useState} from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
+
 import {
   View,
   Text,
   FlatList,
   SectionList,
   StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
 } from 'react-native';
 
-type Workout = {
-  id: string;
-  name: string;
-  duration: string;
-  calories: string;
-  category: string;
-};
+import WorkoutCard from '../components/WorkoutCard';
+import {useWorkout} from '../context/WorkoutContext';
 
-type Props = {
-  workouts: Workout[];
-};
+function WorkoutsScreen() {
+  const {
+    workouts,
+    apiWorkouts,
+    updateWorkout,
+    deleteWorkout,
+  } = useWorkout();
 
-function WorkoutsScreen({workouts}: Props) {
   const [sections, setSections] = useState<
-    {title: string; data: Workout[]}[]
+    {
+      title: string;
+      data: typeof workouts;
+    }[]
   >([]);
+
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
+  const [editingName, setEditingName] =
+    useState('');
 
   useEffect(() => {
     const categories = [
@@ -35,75 +49,155 @@ function WorkoutsScreen({workouts}: Props) {
       .map(category => ({
         title: category,
         data: workouts.filter(
-          workout => workout.category === category,
+          workout =>
+            workout.category === category,
         ),
       }))
-      .filter(section => section.data.length > 0);
+      .filter(
+        section => section.data.length > 0,
+      );
 
     setSections(groupedSections);
   }, [workouts]);
 
+  const handleEdit = (
+    id: string,
+    currentName: string,
+  ) => {
+    setEditingId(id);
+    setEditingName(currentName);
+  };
+
+  const handleUpdate = async (id: string) => {
+    if (!editingName.trim()) {
+      Alert.alert(
+        'Missing Data',
+        'Please enter a workout name.',
+      );
+      return;
+    }
+
+    try {
+      await updateWorkout(
+        id,
+        editingName.trim(),
+      );
+
+      setEditingId(null);
+      setEditingName('');
+
+      Alert.alert(
+        'Success',
+        'Workout updated successfully!',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Could not update workout.',
+      );
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteWorkout(id);
+
+      Alert.alert(
+        'Success',
+        'Workout deleted successfully!',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Could not delete workout.',
+      );
+    }
+  };
+
   const renderWorkout = ({
     item,
   }: {
-    item: Workout;
+    item: typeof workouts[number];
   }) => (
-    <View style={styles.horizontalCard}>
-      <Text style={styles.horizontalName}>
-        {item.name}
+    <WorkoutCard
+      name={item.name}
+      category={item.category}
+      duration={item.duration}
+      calories={item.calories}
+      showButtons={false}>
+
+      <Text style={styles.quickInfo}>
+        Quick workout
       </Text>
 
-      <Text style={styles.horizontalCategory}>
-        {item.category}
-      </Text>
-
-      <Text style={styles.horizontalInfo}>
-        {item.duration}
-      </Text>
-
-      <Text style={styles.horizontalInfo}>
-        🔥 {item.calories}
-      </Text>
-    </View>
+    </WorkoutCard>
   );
 
   const renderSectionItem = ({
     item,
   }: {
-    item: Workout;
-  }) => (
-    <View style={styles.sectionCard}>
-      <View style={styles.cardTop}>
-        <Text style={styles.workoutName}>
-          {item.name}
-        </Text>
+    item: typeof workouts[number];
+  }) => {
+    const isEditing =
+      editingId === item.id;
 
-        <Text style={styles.category}>
-          {item.category}
-        </Text>
-      </View>
+    return (
+      <WorkoutCard
+        name={item.name}
+        category={item.category}
+        duration={item.duration}
+        calories={item.calories}
+        onEdit={() =>
+          handleEdit(
+            item.id,
+            item.name,
+          )
+        }
+        onDelete={() =>
+          handleDelete(item.id)
+        }>
 
-      <View style={styles.infoRow}>
-        <Text style={styles.info}>
-          ⏱ {item.duration}
-        </Text>
+        {isEditing && (
+          <View style={styles.editBox}>
+            <TextInput
+              style={styles.editInput}
+              value={editingName}
+              onChangeText={setEditingName}
+              placeholder="Enter new workout name"
+            />
 
-        <Text style={styles.info}>
-          🔥 {item.calories}
-        </Text>
-      </View>
-    </View>
-  );
+            <Pressable
+              style={styles.saveButton}
+              onPress={() =>
+                handleUpdate(item.id)
+              }>
+
+              <Text style={styles.saveText}>
+                Save Changes
+              </Text>
+
+            </Pressable>
+          </View>
+        )}
+
+      </WorkoutCard>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Workouts</Text>
+      <Text style={styles.title}>
+        My Workouts
+      </Text>
 
       <Text style={styles.subtitle}>
         Choose a workout and keep improving every day.
       </Text>
 
-      {/* FlatList */}
+      <Text style={styles.apiText}>
+        API workouts loaded: {apiWorkouts.length}
+      </Text>
+
       <Text style={styles.listTitle}>
         Quick Workout List
       </Text>
@@ -114,10 +208,11 @@ function WorkoutsScreen({workouts}: Props) {
         keyExtractor={item => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalList}
+        contentContainerStyle={
+          styles.horizontalList
+        }
       />
 
-      {/* SectionList */}
       <Text style={styles.listTitle}>
         Workout Categories
       </Text>
@@ -128,15 +223,22 @@ function WorkoutsScreen({workouts}: Props) {
         keyExtractor={item =>
           `section-${item.id}`
         }
-        renderSectionHeader={({section}) => (
+        renderSectionHeader={({
+          section,
+        }) => (
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>
+            <Text
+              style={
+                styles.sectionHeaderText
+              }>
               {section.title}
             </Text>
           </View>
         )}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.sectionList}
+        contentContainerStyle={
+          styles.sectionList
+        }
         ListEmptyComponent={
           <Text style={styles.emptyText}>
             No workouts available.
@@ -165,7 +267,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#777777',
     marginTop: 6,
-    marginBottom: 15,
+    marginBottom: 5,
+  },
+
+  apiText: {
+    fontSize: 12,
+    color: '#6C5CE7',
+    marginBottom: 10,
   },
 
   listTitle: {
@@ -180,32 +288,10 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
   },
 
-  horizontalCard: {
-    width: 180,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 15,
-    marginRight: 12,
-  },
-
-  horizontalName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#202124',
-    marginBottom: 8,
-  },
-
-  horizontalCategory: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6C5CE7',
-    marginBottom: 8,
-  },
-
-  horizontalInfo: {
+  quickInfo: {
     fontSize: 12,
     color: '#777777',
-    marginTop: 3,
+    marginTop: 10,
   },
 
   sectionList: {
@@ -226,45 +312,31 @@ const styles = StyleSheet.create({
     color: '#6C5CE7',
   },
 
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 10,
+  editBox: {
+    marginTop: 15,
   },
 
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  workoutName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#202124',
-    flex: 1,
-  },
-
-  category: {
-    backgroundColor: '#EDEBFF',
-    color: '#6C5CE7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  editInput: {
+    backgroundColor: '#F7F8FC',
+    borderWidth: 1,
+    borderColor: '#E0DFF0',
     borderRadius: 10,
-    fontSize: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+
+  saveButton: {
+    backgroundColor: '#6C5CE7',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  saveText: {
+    color: '#FFFFFF',
     fontWeight: '700',
-  },
-
-  infoRow: {
-    flexDirection: 'row',
-    marginTop: 12,
-  },
-
-  info: {
-    fontSize: 13,
-    color: '#777777',
-    marginRight: 20,
   },
 
   emptyText: {

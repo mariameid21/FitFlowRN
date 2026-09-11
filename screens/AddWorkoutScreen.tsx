@@ -9,51 +9,71 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import {useWorkout} from '../context/WorkoutContext';
 
-type Props = {
-  onAddWorkout: (workout: {
-    name: string;
-    duration: string;
-    calories: string;
-  }) => void;
-};
+function AddWorkoutScreen() {
+  const {addWorkout} = useWorkout();
 
-function AddWorkoutScreen({onAddWorkout}: Props) {
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
   const [calories, setCalories] = useState('');
 
-  const handleSubmit = () => {
-    if (!name.trim() || !duration.trim() || !calories.trim()) {
-      Alert.alert('Missing Data', 'Please fill in all fields.');
+  const handleSubmit = async () => {
+    if (
+      !name.trim() ||
+      !duration.trim() ||
+      !calories.trim()
+    ) {
+      Alert.alert(
+        'Missing Data',
+        'Please fill in all fields.',
+      );
       return;
     }
 
-    onAddWorkout({
-      name: name.trim(),
-      duration: duration.trim(),
-      calories: calories.trim(),
-    });
+    try {
+      await addWorkout({
+        name: name.trim(),
+        duration: duration.trim(),
+        calories: calories.trim(),
+      });
 
-    Alert.alert('Success', 'Workout added successfully!');
+      Alert.alert(
+        'Success',
+        'Workout added successfully!',
+      );
 
-    setName('');
-    setDuration('');
-    setCalories('');
+      setName('');
+      setDuration('');
+      setCalories('');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Could not add workout.',
+      );
+    }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      
-      <Text style={styles.title}>Add New Workout</Text>
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : undefined
+      }>
+
+      <Text style={styles.title}>
+        Add New Workout
+      </Text>
 
       <Text style={styles.subtitle}>
         Create your own workout and track it with FitFlow.
       </Text>
 
-      <Text style={styles.label}>Workout Name</Text>
+      <Text style={styles.label}>
+        Workout Name
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -62,28 +82,36 @@ function AddWorkoutScreen({onAddWorkout}: Props) {
         onChangeText={setName}
       />
 
-      <Text style={styles.label}>Duration</Text>
+      <Text style={styles.label}>
+        Duration
+      </Text>
 
       <TextInput
         style={styles.input}
         placeholder="e.g. 30 min"
         value={duration}
         onChangeText={setDuration}
-        keyboardType="numeric"
       />
 
-      <Text style={styles.label}>Calories</Text>
+      <Text style={styles.label}>
+        Calories
+      </Text>
 
       <TextInput
         style={styles.input}
         placeholder="e.g. 250 kcal"
         value={calories}
         onChangeText={setCalories}
-        keyboardType="numeric"
       />
 
-      <Pressable style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Add Workout</Text>
+      <Pressable
+        style={styles.button}
+        onPress={handleSubmit}>
+
+        <Text style={styles.buttonText}>
+          Add Workout
+        </Text>
+
       </Pressable>
     </KeyboardAvoidingView>
   );
@@ -145,3 +173,4 @@ const styles = StyleSheet.create({
 });
 
 export default AddWorkoutScreen;
+

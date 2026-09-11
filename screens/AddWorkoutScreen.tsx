@@ -1,3 +1,4 @@
+
 import React, {useState} from 'react';
 import {
   View,
@@ -9,10 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import {useWorkout} from '../context/WorkoutContext';
+import {useWorkoutStore} from '../store/workoutStore';
 
 function AddWorkoutScreen() {
-  const {addWorkout} = useWorkout();
+  const addWorkout = useWorkoutStore(
+    state => state.addWorkout,
+  );
 
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
@@ -173,4 +176,5 @@ const styles = StyleSheet.create({
 });
 
 export default AddWorkoutScreen;
+
 

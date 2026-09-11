@@ -1,3 +1,4 @@
+
 import React, {
   useEffect,
   useState,
@@ -15,15 +16,20 @@ import {
 } from 'react-native';
 
 import WorkoutCard from '../components/WorkoutCard';
-import {useWorkout} from '../context/WorkoutContext';
+import {useWorkoutStore} from '../store/workoutStore';
 
 function WorkoutsScreen() {
-  const {
-    workouts,
-    apiWorkouts,
-    updateWorkout,
-    deleteWorkout,
-  } = useWorkout();
+  const workouts = useWorkoutStore(
+    state => state.workouts,
+  );
+
+  const updateWorkout = useWorkoutStore(
+    state => state.updateWorkout,
+  );
+
+  const deleteWorkout = useWorkoutStore(
+    state => state.deleteWorkout,
+  );
 
   const [sections, setSections] = useState<
     {
@@ -194,10 +200,6 @@ function WorkoutsScreen() {
         Choose a workout and keep improving every day.
       </Text>
 
-      <Text style={styles.apiText}>
-        API workouts loaded: {apiWorkouts.length}
-      </Text>
-
       <Text style={styles.listTitle}>
         Quick Workout List
       </Text>
@@ -268,12 +270,6 @@ const styles = StyleSheet.create({
     color: '#777777',
     marginTop: 6,
     marginBottom: 5,
-  },
-
-  apiText: {
-    fontSize: 12,
-    color: '#6C5CE7',
-    marginBottom: 10,
   },
 
   listTitle: {
